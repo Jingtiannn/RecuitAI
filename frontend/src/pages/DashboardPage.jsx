@@ -1627,6 +1627,8 @@ export default function DashboardPage() {
                     <tbody className="divide-y divide-gray-50">
                       {applications.map((app) => {
                         const cand = app.candidates || {}
+                        const applicationResumeText = app.resume_text || ''
+                        const applicationResumeName = app.resume_filename || 'Application resume'
                         const statusColors = {
                           applied:     'bg-blue-100 text-blue-700',
                           shortlisted: 'bg-green-100 text-green-700',
@@ -1673,8 +1675,15 @@ export default function DashboardPage() {
                             </td>
                             <td className="py-3">
                               <div className="flex items-center gap-2 whitespace-nowrap">
-                                {cand.id && (
-                                  <button onClick={() => handleViewResume(cand.id)}
+                                {(cand.id || applicationResumeText) && (
+                                  <button
+                                    onClick={() => {
+                                      if (applicationResumeText) {
+                                        openResume(cand.name || applicationResumeName, cand.email || '', applicationResumeText)
+                                      } else {
+                                        handleViewResume(cand.id)
+                                      }
+                                    }}
                                     className="text-xs text-blue-600 hover:text-blue-800 font-semibold underline transition-colors">
                                     Resume
                                   </button>

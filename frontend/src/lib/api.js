@@ -219,8 +219,13 @@ export const getResumeUploadHistory = () =>
 export const getJdPool = () =>
   api.get('/candidates/jd-pool')
 
-export const applyToJd = (jdId, coverNote = '', resumeText = '') =>
-  api.post('/candidates/apply', { jd_id: jdId, cover_note: coverNote, resume_text: resumeText })
+export const applyToJd = (jdId, coverNote = '', resumeText = '', resumeFilename = '') =>
+  api.post('/candidates/apply', {
+    jd_id: jdId,
+    cover_note: coverNote,
+    resume_text: resumeText,
+    resume_filename: resumeFilename,
+  })
 
 export const getMyApplications = () =>
   api.get('/candidates/my-applications')

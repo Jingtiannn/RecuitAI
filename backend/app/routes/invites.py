@@ -52,11 +52,24 @@ async def preview_invite_questions(
 
     jd = owned_jd.data[0]
     cand = candidate.data[0]
+    application = (
+        supabase.table("jd_applications")
+        .select("resume_text")
+        .eq("candidate_id", candidate_id)
+        .eq("jd_id", jd_id)
+        .limit(1)
+        .execute()
+    )
+    application_resume = (
+        application.data[0].get("resume_text")
+        if application.data
+        else ""
+    )
     questions, from_cache = await get_or_create_questions(
         jd_id=jd_id,
         jd_text=jd.get("jd_text") or "",
         candidate_id=candidate_id,
-        resume_text=cand.get("resume_text") or "",
+        resume_text=application_resume or cand.get("resume_text") or "",
     )
 
     return {
@@ -166,6 +179,23 @@ async def create_invite(
 
         if inv["status"] in ("expired", "completed"):
             token = secrets.token_urlsafe(16)
+            candidate = (
+                supabase.table("candidates")
+                .select("resume_text, resume_url, name, email")
+                .eq("id", request.candidate_id)
+                .limit(1)
+                .execute()
+            )
+            application = (
+                supabase.table("jd_applications")
+                .select("resume_text")
+                .eq("candidate_id", request.candidate_id)
+                .eq("jd_id", request.jd_id)
+                .limit(1)
+                .execute()
+            )
+            candidate_data = candidate.data[0] if candidate.data else {}
+            application_resume = application.data[0].get("resume_text") if application.data else ""
             refreshed = (
                 supabase.table("screening_invites")
                 .update({
@@ -173,6 +203,10 @@ async def create_invite(
                     "status": "pending",
                     "started_at": None,
                     "completed_at": None,
+                    "resume_text": application_resume or candidate_data.get("resume_text", ""),
+                    "resume_url": candidate_data.get("resume_url"),
+                    "candidate_name": candidate_data.get("name", ""),
+                    "candidate_email": candidate_data.get("email", ""),
                 })
                 .eq("id", inv["id"])
                 .execute()
@@ -203,6 +237,15 @@ async def create_invite(
     )
     if not candidate.data:
         raise HTTPException(status_code=404, detail="Candidate not found")
+    application = (
+        supabase.table("jd_applications")
+        .select("resume_text")
+        .eq("candidate_id", request.candidate_id)
+        .eq("jd_id", request.jd_id)
+        .limit(1)
+        .execute()
+    )
+    application_resume = application.data[0].get("resume_text") if application.data else ""
 
     token = secrets.token_urlsafe(16)
 
@@ -215,7 +258,7 @@ async def create_invite(
             "token": token,
             "status": "pending",
             "resume_url": candidate.data.get("resume_url"),
-            "resume_text": candidate.data.get("resume_text", ""),
+            "resume_text": application_resume or candidate.data.get("resume_text", ""),
             "candidate_name": candidate.data.get("name", ""),
             "candidate_email": candidate.data.get("email", ""),
         })
